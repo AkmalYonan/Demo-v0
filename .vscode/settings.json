@@ -67,6 +67,6 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "Demo-v0.slnx",
+    "dotnet.defaultSolution": "Demo v0.slnx",
     "dotnet.enableWorkspaceBasedDevelopment": false
 }
