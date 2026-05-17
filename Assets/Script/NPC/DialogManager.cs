@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI; // Ditambahkan untuk akses Image Portrait
 using TMPro;
 using System.Collections;
 
@@ -8,30 +9,38 @@ public class DialogManager : MonoBehaviour
 
     [Header("UI")]
     public GameObject dialogBox;
+    public Image portraitImage; // Tambahan untuk Portrait System
     public TextMeshProUGUI nameText;
     public TextMeshProUGUI dialogText;
+
+    [Header("UI Systems")]
+    public GameObject inventorySystemUI;
 
     [Header("Typing Effect")]
     public float typingSpeed = 0.03f;
 
+
     [Header("Choice UI")]
     public GameObject choicePanel;
-    private NPC currentNPC;
-    private string[] lines;
-    private int index;
+    public TextMeshProUGUI choice1TextUI; // Masukkan Text anak Tombol 1 ke sini di Editor
+    public TextMeshProUGUI choice2TextUI; // Masukkan Text anak Tombol 2 ke sini di Editor
+
+    private ChoiceNode currentChoiceNode; // Menyimpan data choice yang sedang aktif
 
     [Header("Sound")]
     public AudioSource audioSource;
     public AudioClip typingSound;
 
+    // State
     private bool isChoosing;
     private bool isTyping;
     private bool isDialogActive;
 
-    void Awake()
-    {
-        instance = this;
-    }
+    // Data (Refactored to ScriptableObject)
+    private DialogData currentDialog;
+    private int index = 0;
+
+    void Awake() { if (instance == null) instance = this; }
 
     void Update()
     {
@@ -40,14 +49,12 @@ public class DialogManager : MonoBehaviour
         // Next dialog
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            // Jika text masih mengetik
+            // Jika text masih mengetik (Skip System)
             if (isTyping)
             {
                 StopAllCoroutines();
-
-                dialogText.text = lines[index];
-
-                FinishTyping();
+                dialogText.text = currentDialog.lines[index]; // Langsung tampil semua
+                FinishTyping(); // Centralized Logic
             }
             else
             {
@@ -57,22 +64,38 @@ public class DialogManager : MonoBehaviour
         }
     }
 
-    public void StartDialog(NPC npc, string npcName, string[] npcLines)
+    public void StartDialog(DialogData data)
     {
-
-        currentNPC = npc;
-
         isDialogActive = true;
 
-        lines = npcLines;
+        // Simpan data ScriptableObject
+        currentDialog = data;
         index = 0;
 
         dialogBox.SetActive(true);
 
-        nameText.text = npcName;
+        // Set UI dari ScriptableObject
+        nameText.text = currentDialog.npcName;
+
+        // Portrait Logic
+        if (portraitImage != null && currentDialog.npcPortrait != null)
+        {
+            portraitImage.sprite = currentDialog.npcPortrait;
+            portraitImage.gameObject.SetActive(true);
+        }
+        else if (portraitImage != null)
+        {
+            portraitImage.gameObject.SetActive(false); // Sembunyikan jika NPC tak punya portrait
+        }
 
         // Lock player movement
-        PlayerMovement.instance.canMove = false;
+        if (PlayerMovement.instance != null)
+        {
+            PlayerMovement.instance.canMove = false;
+        }
+
+        if (inventorySystemUI != null)
+            inventorySystemUI.SetActive(false);
 
         DisplayNextLine();
     }
@@ -80,7 +103,7 @@ public class DialogManager : MonoBehaviour
     void DisplayNextLine()
     {
         // Dialog selesai
-        if (index >= lines.Length)
+        if (index >= currentDialog.lines.Length)
         {
             EndDialog();
             return;
@@ -89,53 +112,81 @@ public class DialogManager : MonoBehaviour
         StopAllCoroutines();
         StartCoroutine(TypeLine());
     }
+
     void ShowChoices()
     {
         isChoosing = true;
+        // Ubah teks tombol secara dinamis dari ScriptableObject
+        choice1TextUI.text = currentChoiceNode.choice1Text;
+        choice2TextUI.text = currentChoiceNode.choice2Text;
+
         choicePanel.SetActive(true);
     }
 
-    public void ChooseYes()
+    // Ubah nama method dan logikanya
+    public void Choose1()
     {
-        isChoosing = false;
-
-        choicePanel.SetActive(false);
-
-        dialogText.text = "Terima kasih sudah membantu!";
+        // Cek apakah pilihan ini memberikan quest
+        if (currentChoiceNode.choice1TriggerQuest != null)
+        {
+            QuestManager.instance.AcceptQuest(currentChoiceNode.choice1TriggerQuest);
+        }
+        ExecuteChoice(currentChoiceNode.choice1JumpIndex);
     }
 
-    public void ChooseNo()
+    public void Choose2()
+    {
+        // Cek apakah pilihan ini memberikan quest
+        if (currentChoiceNode.choice2TriggerQuest != null)
+        {
+            QuestManager.instance.AcceptQuest(currentChoiceNode.choice2TriggerQuest);
+        }
+        ExecuteChoice(currentChoiceNode.choice2JumpIndex);
+    }
+
+    private void ExecuteChoice(int jumpIndex)
     {
         isChoosing = false;
-
         choicePanel.SetActive(false);
 
-        dialogText.text = "Baiklah... mungkin lain kali.";
+        if (jumpIndex == -1)
+        {
+            EndDialog(); // Jika -1, langsung tutup dialog (seperti Exit)
+        }
+        else
+        {
+            index = jumpIndex; // Set index dialog ke index tujuan
+            DisplayNextLine(); // Ketikkan teks tujuan tersebut
+        }
     }
+
     void FinishTyping()
     {
         isTyping = false;
 
-        // Jika line ini punya choice
-        if (currentNPC.hasChoice &&
-            index == currentNPC.choiceLineIndex)
+        // Cek apakah di Line (index) saat ini ada percabangan (Choice)
+        foreach (ChoiceNode node in currentDialog.choices)
         {
-            ShowChoices();
+            if (index == node.triggerLineIndex)
+            {
+                currentChoiceNode = node;
+                ShowChoices();
+                break; // Stop looping jika sudah ketemu
+            }
         }
     }
 
     IEnumerator TypeLine()
     {
         isTyping = true;
-
         dialogText.text = "";
 
-        foreach (char c in lines[index])
+        foreach (char c in currentDialog.lines[index])
         {
             dialogText.text += c;
 
-            // Play typing sound
-            if (c != ' ')
+            // Play typing sound (abaikan spasi agar suaranya lebih natural)
+            if (c != ' ' && audioSource != null && typingSound != null)
             {
                 audioSource.PlayOneShot(typingSound);
             }
@@ -149,11 +200,17 @@ public class DialogManager : MonoBehaviour
     public void EndDialog()
     {
         isDialogActive = false;
-
         dialogBox.SetActive(false);
+        choicePanel.SetActive(false); // Safety: Pastikan choice tertutup
 
+        if (inventorySystemUI != null)
+            inventorySystemUI.SetActive(true);
         // Unlock movement
-        PlayerMovement.instance.canMove = true;
+        if (PlayerMovement.instance != null)
+        {
+            PlayerMovement.instance.canMove = true;
+        }
+
     }
 
     public bool DialogActive()

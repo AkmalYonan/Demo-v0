@@ -13,12 +13,25 @@ namespace Kinnly
 
         int amount;
 
+        // --- TAMBAHAN BARU: Agar data bisa dibaca & dimodifikasi dari script NPC ---
+        public Item assignedItem { get; private set; }
+        public int Amount => amount;
+
         public void SetItem(Item item, int amount)
         {
+            assignedItem = item; // Simpan referensi item saat di-set
             image.sprite = item.image;
             this.amount = amount;
             UpdateUI();
         }
+
+        // --- TAMBAHAN BARU: Fungsi untuk mengurangi jumlah di Toolbar secara langsung ---
+        public void ReduceAmount(int removeAmount)
+        {
+            this.amount -= removeAmount;
+            UpdateUI();
+        }
+        // --------------------------------------------------------------------------
 
         void UpdateUI()
         {

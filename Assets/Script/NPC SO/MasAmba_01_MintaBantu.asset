@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5ad45dc90b4bf6b449eb02bbd85b4ed5, type: 3}
+  m_Name: MasAmba_01_MintaBantu
+  m_EditorClassIdentifier: Assembly-CSharp::DialogData
+  npcName: Ambatukam Guard
+  npcPortrait: {fileID: 0}
+  lines:
+  - Kamu! Siapa kamu ?
+  - Kamu adalah orang asing!
+  - Bisakah kamu perkenalkan diri ?
+  - Hah?! Terdampar ?
+  - Baik! Tapi maukah kamu membantu saya ?
+  choices:
+  - triggerLineIndex: 2
+    choice1Text: Baik! Nama saya Bayu, saya terdampar disini. Saya tidak tau ini
+      dimana bisakah kamu membantu saya ?
+    choice1JumpIndex: 3
+    choice1TriggerQuest: {fileID: 0}
+    choice2Text: Tidak mau! saya tidak mau!
+    choice2JumpIndex: -1
+    choice2TriggerQuest: {fileID: 0}
+  - triggerLineIndex: 4
+    choice1Text: Baik saya akan membantu anda!
+    choice1JumpIndex: -1
+    choice1TriggerQuest: {fileID: 11400000, guid: b209a508e8e225d47969ec917fa0793d,
+      type: 2}
+    choice2Text: Tidak! Tidak mau!
+    choice2JumpIndex: -1
+    choice2TriggerQuest: {fileID: 0}
